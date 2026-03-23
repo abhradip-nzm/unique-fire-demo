@@ -9,12 +9,182 @@ const complianceStyle = {
   "Overdue":          { bg: "#FDECEA", color: "#C0392B", border: "#F5B7B1" },
 };
 
+const inputStyle = {
+  width: "100%", border: `1px solid #D1D5DB`, borderRadius: 6, padding: "8px 12px",
+  fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#FAFAFA",
+};
+
+const labelStyle = { fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5, display: "block" };
+
+const INDUSTRY_OPTS = [
+  { value: "", label: "Select industry…" },
+  { value: "Healthcare", label: "Healthcare" },
+  { value: "Commercial Real Estate", label: "Commercial Real Estate" },
+  { value: "Retail", label: "Retail" },
+  { value: "Hospitality", label: "Hospitality" },
+  { value: "Education", label: "Education" },
+  { value: "Government", label: "Government" },
+  { value: "Industrial", label: "Industrial" },
+  { value: "Transportation", label: "Transportation" },
+  { value: "Other", label: "Other" },
+];
+
+const empty = {
+  companyName: "", industry: "",
+  contactName: "", contactEmail: "", contactPhone: "",
+  siteName: "", siteAddress: "",
+  contractStart: "", contractRenewal: "", contractValue: "",
+  status: "Active",
+};
+
+function AddClientModal({ onClose, onSubmit }) {
+  const [form, setForm] = useState(empty);
+  const [errors, setErrors] = useState({});
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.companyName.trim()) e.companyName = "Required";
+    if (!form.contactName.trim()) e.contactName = "Required";
+    if (!form.contactEmail.trim()) e.contactEmail = "Required";
+    else if (!/\S+@\S+\.\S+/.test(form.contactEmail)) e.contactEmail = "Invalid email";
+    if (!form.contactPhone.trim()) e.contactPhone = "Required";
+    if (!form.siteName.trim()) e.siteName = "Required";
+    if (!form.siteAddress.trim()) e.siteAddress = "Required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    onSubmit({
+      id: `client-${Date.now()}`,
+      name: form.companyName,
+      status: form.status,
+      openDefects: 0,
+      contact: { name: form.contactName, email: form.contactEmail, phone: form.contactPhone },
+      sites: [{ name: form.siteName, address: form.siteAddress, assets: 0, compliance: "Compliant", lastServiced: "—" }],
+      contract: {
+        start: form.contractStart || "—",
+        renewal: form.contractRenewal || "—",
+        value: form.contractValue ? `SGD $${form.contractValue}` : "—",
+        renewalSoon: false,
+      },
+      serviceHistory: [],
+    });
+  };
+
+  const F = ({ id, label, placeholder, required, type = "text", half }) => (
+    <div style={{ flex: half ? "0 0 calc(50% - 6px)" : "1 1 100%" }}>
+      <label style={labelStyle}>{label}{required && <span style={{ color: C.red, marginLeft: 3 }}>*</span>}</label>
+      <input id={id} type={type} value={form[id]} onChange={e => set(id, e.target.value)} placeholder={placeholder}
+        style={{ ...inputStyle, borderColor: errors[id] ? C.red : "#D1D5DB" }} />
+      {errors[id] && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors[id]}</div>}
+    </div>
+  );
+
+  const section = (title) => (
+    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>{title}</div>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "32px 20px" }}
+      onClick={onClose}>
+      <div style={{ background: C.white, borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>Add New Client</div>
+            <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>Fill in the details to register a new client</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 22, lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ padding: "24px" }}>
+          {/* Company Info */}
+          <div style={{ marginBottom: 24 }}>
+            {section("Company Information")}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <F id="companyName" label="Company Name" placeholder="e.g. Raffles Hotel Group" required />
+              <div style={{ flex: "1 1 100%" }}>
+                <label style={labelStyle}>Industry</label>
+                <select value={form.industry} onChange={e => set("industry", e.target.value)}
+                  style={{ ...inputStyle, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 30 }}>
+                  {INDUSTRY_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: "1 1 100%" }}>
+                <label style={labelStyle}>Status</label>
+                <div style={{ display: "flex", gap: 16 }}>
+                  {["Active", "Inactive"].map(s => (
+                    <label key={s} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: C.textPrimary, cursor: "pointer" }}>
+                      <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => set("status", s)} />
+                      {s}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Contact */}
+          <div style={{ marginBottom: 24 }}>
+            {section("Primary Contact")}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <F id="contactName" label="Contact Name" placeholder="Full name" required />
+              <F id="contactEmail" label="Email Address" placeholder="name@company.com" required type="email" half />
+              <F id="contactPhone" label="Phone Number" placeholder="+65 9XXX XXXX" required half />
+            </div>
+          </div>
+
+          {/* Site */}
+          <div style={{ marginBottom: 24 }}>
+            {section("Primary Site")}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <F id="siteName" label="Site Name" placeholder="e.g. Main Building" required />
+              <F id="siteAddress" label="Site Address" placeholder="Full address, Singapore" required />
+            </div>
+          </div>
+
+          {/* Contract */}
+          <div style={{ marginBottom: 28 }}>
+            {section("Contract Details")}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <F id="contractStart" label="Contract Start Date" placeholder="e.g. 1 Jan 2025" half />
+              <F id="contractRenewal" label="Renewal Date" placeholder="e.g. 31 Dec 2026" half />
+              <div style={{ flex: "1 1 100%" }}>
+                <label style={labelStyle}>Annual Contract Value (SGD)</label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: C.textMuted, fontWeight: 600 }}>$</span>
+                  <input value={form.contractValue} onChange={e => set("contractValue", e.target.value)} placeholder="0.00" type="number"
+                    style={{ ...inputStyle, paddingLeft: 26 }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
+            <button onClick={onClose} style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 7, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={handleSubmit} style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)" }}>Add Client</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientManagementScreen() {
+  const [clients, setClients] = useState(CLIENT_DATA);
   const [search, setSearch] = useState("");
   const [statusF, setStatusF] = useState("all");
   const [drawer, setDrawer] = useState(null);
+  const [addingClient, setAddingClient] = useState(false);
 
-  const filtered = CLIENT_DATA.filter(c => {
+  const filtered = clients.filter(c => {
     if (statusF !== "all" && c.status !== statusF) return false;
     if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.contact.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -22,12 +192,17 @@ export default function ClientManagementScreen() {
 
   const statusOpts = [{ value: "all", label: "All Statuses" }, { value: "Active", label: "Active" }, { value: "Inactive", label: "Inactive" }];
 
+  const handleAddClient = (newClient) => {
+    setClients(prev => [...prev, newClient]);
+    setAddingClient(false);
+  };
+
   return (
     <div style={{ display: "flex", gap: 0, height: "100%" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
           <PageHeader title="Client Management" subtitle="All registered customer accounts" />
-          <button style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)", flexShrink: 0, marginTop: 2 }}>
+          <button onClick={() => setAddingClient(true)} style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)", flexShrink: 0, marginTop: 2 }}>
             + Add New Client
           </button>
         </div>
@@ -149,7 +324,9 @@ export default function ClientManagementScreen() {
 
           <div style={{ padding: "16px 20px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14 }}>Service History</div>
-            {drawer.serviceHistory.map((h, i, arr) => (
+            {drawer.serviceHistory.length === 0 ? (
+              <div style={{ fontSize: 12, color: C.textMuted }}>No service history yet</div>
+            ) : drawer.serviceHistory.map((h, i, arr) => (
               <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < arr.length - 1 ? 14 : 0 }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
                   <div style={{ width: 9, height: 9, borderRadius: "50%", background: C.green, border: `2px solid #fff`, boxShadow: `0 0 0 1px ${C.green}`, marginTop: 2 }} />
@@ -165,6 +342,8 @@ export default function ClientManagementScreen() {
           </div>
         </div>
       )}
+
+      {addingClient && <AddClientModal onClose={() => setAddingClient(false)} onSubmit={handleAddClient} />}
     </div>
   );
 }
