@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+
+/* Nav items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { color: #111; background: rgba(0,0,0,0.06); }
+.nav-item.active { color: #C0392B; background: rgba(192,57,43,0.1); border-left: 3px solid #C0392B; }
+
+/* Toggle buttons */
+.toggle-btn {
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.18s ease;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.01em;
+}
+.toggle-btn.active  { background: #C0392B; color: #fff; box-shadow: 0 2px 8px rgba(192,57,43,0.35); }
+.toggle-btn.inactive { background: rgba(0,0,0,0.08); color: #555; }
+.toggle-btn.inactive:hover { background: rgba(0,0,0,0.14); color: #111; }
+
+/* Table row hover */
+tbody tr:hover td { background: rgba(0,0,0,0.018) !important; }
+
+/* Focus rings */
+select:focus, input:focus { outline: 2px solid rgba(192,57,43,0.3); outline-offset: 0; }
