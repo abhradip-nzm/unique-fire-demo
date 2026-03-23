@@ -54,8 +54,19 @@ export default function AuditPackScreen() {
             ))}
           </div>
           <div style={{ ...card }}>
-            <button onClick={handle} disabled={generating} style={{ width: "100%", padding: "13px", background: generating ? "#9B2335" : C.red, color: "#fff", border: "none", borderRadius: 7, fontSize: 15, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: generating ? "none" : "0 4px 14px rgba(192,57,43,0.28)", transition: "background 0.15s" }}>
-              {generating ? "Generating…" : generated ? "✓ Audit Pack Generated" : "Generate Audit Pack"}
+            <button onClick={handle} disabled={generating} style={{ width: "100%", padding: "13px", background: generating ? "#9B2335" : C.red, color: "#fff", border: "none", borderRadius: 7, fontSize: 15, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: generating ? "none" : "0 4px 14px rgba(192,57,43,0.28)", transition: "background 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              {generating ? "Generating…" : generated ? (
+                <>✓ Audit Pack Generated</>
+              ) : (
+                <>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Generate Audit Pack
+                </>
+              )}
             </button>
             {generated && (
               <div style={{ marginTop: 12, padding: "10px 12px", background: C.greenBg, borderRadius: 6, border: `1px solid ${C.greenBorder}` }}>
