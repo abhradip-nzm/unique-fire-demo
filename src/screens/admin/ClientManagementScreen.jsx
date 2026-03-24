@@ -29,7 +29,7 @@ const INDUSTRY_OPTS = [
   { value: "Other", label: "Other" },
 ];
 
-const empty = {
+const emptyForm = {
   companyName: "", industry: "",
   contactName: "", contactEmail: "", contactPhone: "",
   siteName: "", siteAddress: "",
@@ -37,8 +37,50 @@ const empty = {
   status: "Active",
 };
 
+// ── Shared form field component ──────────────────────────────────────────────
+function FormField({ id, label, value, onChange, placeholder, required, type = "text", half, error }) {
+  return (
+    <div style={{ flex: half ? "0 0 calc(50% - 6px)" : "1 1 100%" }}>
+      <label style={labelStyle}>{label}{required && <span style={{ color: C.red, marginLeft: 3 }}>*</span>}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ ...inputStyle, borderColor: error ? C.red : "#D1D5DB" }} />
+      {error && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{error}</div>}
+    </div>
+  );
+}
+
+// ── Shared section divider ───────────────────────────────────────────────────
+function Section({ title }) {
+  return (
+    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
+      {title}
+    </div>
+  );
+}
+
+// ── Modal shell ──────────────────────────────────────────────────────────────
+function ModalShell({ title, subtitle, onClose, children }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "32px 20px" }}
+      onClick={onClose}>
+      <div style={{ background: C.white, borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>{title}</div>
+            <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>{subtitle}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 22, lineHeight: 1 }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Add Client Modal ─────────────────────────────────────────────────────────
 function AddClientModal({ onClose, onSubmit }) {
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -61,6 +103,7 @@ function AddClientModal({ onClose, onSubmit }) {
     onSubmit({
       id: `client-${Date.now()}`,
       name: form.companyName,
+      industry: form.industry,
       status: form.status,
       openDefects: 0,
       contact: { name: form.contactName, email: form.contactEmail, phone: form.contactPhone },
@@ -68,121 +111,241 @@ function AddClientModal({ onClose, onSubmit }) {
       contract: {
         start: form.contractStart || "—",
         renewal: form.contractRenewal || "—",
-        value: form.contractValue ? `SGD $${form.contractValue}` : "—",
+        value: form.contractValue ? `SGD $${parseFloat(form.contractValue).toLocaleString()}/yr` : "—",
         renewalSoon: false,
       },
       serviceHistory: [],
     });
   };
 
-  const F = ({ id, label, placeholder, required, type = "text", half }) => (
-    <div style={{ flex: half ? "0 0 calc(50% - 6px)" : "1 1 100%" }}>
-      <label style={labelStyle}>{label}{required && <span style={{ color: C.red, marginLeft: 3 }}>*</span>}</label>
-      <input id={id} type={type} value={form[id]} onChange={e => set(id, e.target.value)} placeholder={placeholder}
-        style={{ ...inputStyle, borderColor: errors[id] ? C.red : "#D1D5DB" }} />
-      {errors[id] && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors[id]}</div>}
-    </div>
-  );
-
-  const section = (title) => (
-    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 14, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>{title}</div>
-  );
-
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "32px 20px" }}
-      onClick={onClose}>
-      <div style={{ background: C.white, borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
-        onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
-        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>Add New Client</div>
-            <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>Fill in the details to register a new client</div>
+    <ModalShell title="Add New Client" subtitle="Fill in the details to register a new client" onClose={onClose}>
+      <div style={{ padding: "24px" }}>
+        {/* Company Info */}
+        <div style={{ marginBottom: 24 }}>
+          <Section title="Company Information" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField id="companyName" label="Company Name" value={form.companyName} onChange={v => set("companyName", v)} placeholder="e.g. Raffles Hotel Group" required error={errors.companyName} />
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Industry</label>
+              <select value={form.industry} onChange={e => set("industry", e.target.value)}
+                style={{ ...inputStyle, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 30 }}>
+                {INDUSTRY_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Status</label>
+              <div style={{ display: "flex", gap: 16 }}>
+                {["Active", "Inactive"].map(s => (
+                  <label key={s} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: C.textPrimary, cursor: "pointer" }}>
+                    <input type="radio" name="add-status" value={s} checked={form.status === s} onChange={() => set("status", s)} />
+                    {s}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 22, lineHeight: 1 }}>×</button>
         </div>
 
-        <div style={{ padding: "24px" }}>
-          {/* Company Info */}
-          <div style={{ marginBottom: 24 }}>
-            {section("Company Information")}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              <F id="companyName" label="Company Name" placeholder="e.g. Raffles Hotel Group" required />
-              <div style={{ flex: "1 1 100%" }}>
-                <label style={labelStyle}>Industry</label>
-                <select value={form.industry} onChange={e => set("industry", e.target.value)}
-                  style={{ ...inputStyle, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 30 }}>
-                  {INDUSTRY_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: "1 1 100%" }}>
-                <label style={labelStyle}>Status</label>
-                <div style={{ display: "flex", gap: 16 }}>
-                  {["Active", "Inactive"].map(s => (
-                    <label key={s} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: C.textPrimary, cursor: "pointer" }}>
-                      <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => set("status", s)} />
-                      {s}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Primary Contact */}
+        <div style={{ marginBottom: 24 }}>
+          <Section title="Primary Contact" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Contact Name" value={form.contactName} onChange={v => set("contactName", v)} placeholder="Full name" required error={errors.contactName} />
+            <FormField label="Email Address" value={form.contactEmail} onChange={v => set("contactEmail", v)} placeholder="name@company.com" required type="email" half error={errors.contactEmail} />
+            <FormField label="Phone Number" value={form.contactPhone} onChange={v => set("contactPhone", v)} placeholder="+65 9XXX XXXX" required half error={errors.contactPhone} />
           </div>
+        </div>
 
-          {/* Primary Contact */}
-          <div style={{ marginBottom: 24 }}>
-            {section("Primary Contact")}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              <F id="contactName" label="Contact Name" placeholder="Full name" required />
-              <F id="contactEmail" label="Email Address" placeholder="name@company.com" required type="email" half />
-              <F id="contactPhone" label="Phone Number" placeholder="+65 9XXX XXXX" required half />
-            </div>
+        {/* Site */}
+        <div style={{ marginBottom: 24 }}>
+          <Section title="Primary Site" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Site Name" value={form.siteName} onChange={v => set("siteName", v)} placeholder="e.g. Main Building" required error={errors.siteName} />
+            <FormField label="Site Address" value={form.siteAddress} onChange={v => set("siteAddress", v)} placeholder="Full address, Singapore" required error={errors.siteAddress} />
           </div>
+        </div>
 
-          {/* Site */}
-          <div style={{ marginBottom: 24 }}>
-            {section("Primary Site")}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              <F id="siteName" label="Site Name" placeholder="e.g. Main Building" required />
-              <F id="siteAddress" label="Site Address" placeholder="Full address, Singapore" required />
-            </div>
-          </div>
-
-          {/* Contract */}
-          <div style={{ marginBottom: 28 }}>
-            {section("Contract Details")}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              <F id="contractStart" label="Contract Start Date" placeholder="e.g. 1 Jan 2025" half />
-              <F id="contractRenewal" label="Renewal Date" placeholder="e.g. 31 Dec 2026" half />
-              <div style={{ flex: "1 1 100%" }}>
-                <label style={labelStyle}>Annual Contract Value (SGD)</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: C.textMuted, fontWeight: 600 }}>$</span>
-                  <input value={form.contractValue} onChange={e => set("contractValue", e.target.value)} placeholder="0.00" type="number"
-                    style={{ ...inputStyle, paddingLeft: 26 }} />
-                </div>
+        {/* Contract */}
+        <div style={{ marginBottom: 28 }}>
+          <Section title="Contract Details" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Contract Start Date" value={form.contractStart} onChange={v => set("contractStart", v)} placeholder="e.g. 1 Jan 2025" half />
+            <FormField label="Renewal Date" value={form.contractRenewal} onChange={v => set("contractRenewal", v)} placeholder="e.g. 31 Dec 2026" half />
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Annual Contract Value (SGD)</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: C.textMuted, fontWeight: 600 }}>$</span>
+                <input value={form.contractValue} onChange={e => set("contractValue", e.target.value)} placeholder="0.00" type="number"
+                  style={{ ...inputStyle, paddingLeft: 26 }} />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
-            <button onClick={onClose} style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 7, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-            <button onClick={handleSubmit} style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)" }}>Add Client</button>
-          </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
+          <button onClick={onClose} style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 7, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={handleSubmit} style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)" }}>Add Client</button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 
+// ── Edit Client Modal ────────────────────────────────────────────────────────
+function EditClientModal({ client, onClose, onSave }) {
+  // Parse existing contract value to a raw number string for the input
+  const parseContractValue = (val) => {
+    if (!val || val === "—") return "";
+    return val.replace(/[^0-9.]/g, "");
+  };
+
+  const [form, setForm] = useState({
+    companyName:     client.name || "",
+    industry:        client.industry || "",
+    status:          client.status || "Active",
+    contactName:     client.contact?.name || "",
+    contactEmail:    client.contact?.email || "",
+    contactPhone:    client.contact?.phone || "",
+    contractStart:   client.contract?.start || "",
+    contractRenewal: client.contract?.renewal || "",
+    contractValue:   parseContractValue(client.contract?.value),
+    renewalSoon:     client.contract?.renewalSoon || false,
+  });
+  const [errors, setErrors] = useState({});
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.companyName.trim()) e.companyName = "Required";
+    if (!form.contactName.trim()) e.contactName = "Required";
+    if (!form.contactEmail.trim()) e.contactEmail = "Required";
+    else if (!/\S+@\S+\.\S+/.test(form.contactEmail)) e.contactEmail = "Invalid email";
+    if (!form.contactPhone.trim()) e.contactPhone = "Required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = () => {
+    if (!validate()) return;
+    onSave({
+      ...client,
+      name:     form.companyName,
+      industry: form.industry,
+      status:   form.status,
+      contact: {
+        name:  form.contactName,
+        email: form.contactEmail,
+        phone: form.contactPhone,
+      },
+      contract: {
+        start:       form.contractStart || "—",
+        renewal:     form.contractRenewal || "—",
+        value:       form.contractValue ? `SGD $${parseFloat(form.contractValue).toLocaleString()}/yr` : "—",
+        renewalSoon: form.renewalSoon,
+      },
+    });
+  };
+
+  return (
+    <ModalShell title="Edit Client" subtitle={`Editing details for ${client.name}`} onClose={onClose}>
+      <div style={{ padding: "24px" }}>
+        {/* Company Info */}
+        <div style={{ marginBottom: 24 }}>
+          <Section title="Company Information" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Company Name" value={form.companyName} onChange={v => set("companyName", v)} placeholder="e.g. Raffles Hotel Group" required error={errors.companyName} />
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Industry</label>
+              <select value={form.industry} onChange={e => set("industry", e.target.value)}
+                style={{ ...inputStyle, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 30 }}>
+                {INDUSTRY_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Status</label>
+              <div style={{ display: "flex", gap: 16 }}>
+                {["Active", "Inactive"].map(s => (
+                  <label key={s} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: C.textPrimary, cursor: "pointer" }}>
+                    <input type="radio" name="edit-status" value={s} checked={form.status === s} onChange={() => set("status", s)} />
+                    {s}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary Contact */}
+        <div style={{ marginBottom: 24 }}>
+          <Section title="Primary Contact" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Contact Name" value={form.contactName} onChange={v => set("contactName", v)} placeholder="Full name" required error={errors.contactName} />
+            <FormField label="Email Address" value={form.contactEmail} onChange={v => set("contactEmail", v)} placeholder="name@company.com" required type="email" half error={errors.contactEmail} />
+            <FormField label="Phone Number" value={form.contactPhone} onChange={v => set("contactPhone", v)} placeholder="+65 9XXX XXXX" required half error={errors.contactPhone} />
+          </div>
+        </div>
+
+        {/* Sites (read-only summary) */}
+        {client.sites?.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <Section title="Sites" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {client.sites.map((s, i) => (
+                <div key={i} style={{ background: "#F9FAFB", border: `1px solid ${C.border}`, borderRadius: 7, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>{s.name}</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{s.address}</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: C.textSecondary, background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 4, padding: "2px 8px", flexShrink: 0 }}>{s.assets} assets</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8 }}>Site management is handled separately. Contact support to add or remove sites.</div>
+          </div>
+        )}
+
+        {/* Contract */}
+        <div style={{ marginBottom: 28 }}>
+          <Section title="Contract Details" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <FormField label="Contract Start Date" value={form.contractStart} onChange={v => set("contractStart", v)} placeholder="e.g. 1 Jan 2025" half />
+            <FormField label="Renewal Date" value={form.contractRenewal} onChange={v => set("contractRenewal", v)} placeholder="e.g. 31 Dec 2026" half />
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={labelStyle}>Annual Contract Value (SGD)</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: C.textMuted, fontWeight: 600 }}>$</span>
+                <input value={form.contractValue} onChange={e => set("contractValue", e.target.value)} placeholder="0.00" type="number"
+                  style={{ ...inputStyle, paddingLeft: 26 }} />
+              </div>
+            </div>
+            <div style={{ flex: "1 1 100%" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: C.textPrimary }}>
+                <input type="checkbox" checked={form.renewalSoon} onChange={e => set("renewalSoon", e.target.checked)} />
+                Flag contract as renewal due soon
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
+          <button onClick={onClose} style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 7, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={handleSave} style={{ background: C.red, color: "#fff", border: "none", borderRadius: 7, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(192,57,43,0.25)" }}>Save Changes</button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ── Main Screen ──────────────────────────────────────────────────────────────
 export default function ClientManagementScreen() {
   const [clients, setClients] = useState(CLIENT_DATA);
-  const [search, setSearch] = useState("");
+  const [search, setSearch]   = useState("");
   const [statusF, setStatusF] = useState("all");
-  const [drawer, setDrawer] = useState(null);
-  const [addingClient, setAddingClient] = useState(false);
+  const [drawer, setDrawer]   = useState(null);
+  const [addingClient, setAddingClient]   = useState(false);
+  const [editingClient, setEditingClient] = useState(null); // holds client object
 
   const filtered = clients.filter(c => {
     if (statusF !== "all" && c.status !== statusF) return false;
@@ -195,6 +358,13 @@ export default function ClientManagementScreen() {
   const handleAddClient = (newClient) => {
     setClients(prev => [...prev, newClient]);
     setAddingClient(false);
+  };
+
+  const handleSaveClient = (updated) => {
+    setClients(prev => prev.map(c => c.id === updated.id ? updated : c));
+    // If drawer is open for this client, refresh it too
+    if (drawer?.id === updated.id) setDrawer(updated);
+    setEditingClient(null);
   };
 
   return (
@@ -238,7 +408,8 @@ export default function ClientManagementScreen() {
                         <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={() => setDrawer(drawer?.id === c.id ? null : c)}
                             style={{ background: drawer?.id === c.id ? C.redBg : "#F3F4F6", color: drawer?.id === c.id ? C.red : C.textPrimary, border: `1px solid ${drawer?.id === c.id ? C.redBorder : C.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>View</button>
-                          <button style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
+                          <button onClick={() => setEditingClient(c)}
+                            style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
                         </div>
                       </td>
                     </tr>
@@ -250,6 +421,7 @@ export default function ClientManagementScreen() {
         </div>
       </div>
 
+      {/* Client Detail Drawer */}
       {drawer && (
         <div style={{ width: 400, flexShrink: 0, marginLeft: 20, background: C.white, borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04)", overflowY: "auto", maxHeight: "calc(100vh - 108px)" }}>
           <div style={{ padding: "18px 20px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.white, zIndex: 2 }}>
@@ -258,7 +430,11 @@ export default function ClientManagementScreen() {
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>{drawer.name}</div>
                 <Badge status={drawer.status} />
               </div>
-              <button onClick={() => setDrawer(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 20, lineHeight: 1, padding: 2 }}>×</button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button onClick={() => { setEditingClient(drawer); }}
+                  style={{ background: "#F3F4F6", color: C.textPrimary, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
+                <button onClick={() => setDrawer(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 20, lineHeight: 1, padding: 2 }}>×</button>
+              </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <div style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600 }}>{drawer.contact.name}</div>
@@ -343,7 +519,8 @@ export default function ClientManagementScreen() {
         </div>
       )}
 
-      {addingClient && <AddClientModal onClose={() => setAddingClient(false)} onSubmit={handleAddClient} />}
+      {addingClient  && <AddClientModal  onClose={() => setAddingClient(false)}  onSubmit={handleAddClient} />}
+      {editingClient && <EditClientModal client={editingClient} onClose={() => setEditingClient(null)} onSave={handleSaveClient} />}
     </div>
   );
 }
